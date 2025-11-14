@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     const month = start.getMonth() + 1
     const seasonalContext = `
-    
+
 IMPORTANT SEASONAL CONTEXT for ${destination} in ${start.toLocaleDateString("en-US", { month: "long" })}:
 - Analyze the specific weather patterns, temperature ranges, and precipitation for this destination and time of year
 - Consider local seasonal events, festivals, and cultural celebrations happening during this period
@@ -105,9 +105,9 @@ Please create a comprehensive itinerary that includes:
 
 Format the response as a well-structured itinerary that's easy to read and follow. Include specific venue names, addresses when possible, and realistic time estimates. Pay special attention to seasonal factors that could significantly impact the travel experience.`
 
-    // Generate itinerary using Groq
+    // Generate itinerary using updated Groq model
     const { text } = await generateText({
-      model: groq("llama-3.1-70b-versatile"),
+      model: groq("llama-3.3-70b-versatile"), // ← updated model
       prompt,
       maxTokens: 4000,
     })
