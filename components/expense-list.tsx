@@ -6,7 +6,7 @@ interface Expense {
   category: string
   amount: string
   description: string
-  expense_date: string
+  date: string
   created_at: string
 }
 
@@ -64,7 +64,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
               </Badge>
               <span className="text-sm text-gray-600 flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                {formatDate(expense.expense_date)}
+                {formatDate(expense.date)}
               </span>
             </div>
             <p className="font-medium text-gray-900">{expense.description}</p>

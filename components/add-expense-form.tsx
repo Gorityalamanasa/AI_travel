@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,7 +35,9 @@ export function AddExpenseForm({ itineraryId }: AddExpenseFormProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
   const [formData, setFormData] = useState({
+    title: "",
     category: "",
     amount: "",
     description: "",
@@ -50,20 +51,20 @@ export function AddExpenseForm({ itineraryId }: AddExpenseFormProps) {
     try {
       const response = await fetch("/api/expenses", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           itineraryId,
+          title: formData.title,           // REQUIRED for DB
           category: formData.category,
           amount: Number.parseFloat(formData.amount),
           description: formData.description,
-          expenseDate: formData.expenseDate,
+          date: formData.expenseDate,
         }),
       })
 
       if (response.ok) {
         setFormData({
+          title: "",
           category: "",
           amount: "",
           description: "",
@@ -95,7 +96,23 @@ export function AddExpenseForm({ itineraryId }: AddExpenseFormProps) {
           <DialogTitle>Add New Expense</DialogTitle>
           <DialogDescription>Record a new expense for your trip</DialogDescription>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4">
+
+          {/* Title */}
+          <div>
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              type="text"
+              placeholder="e.g., Dinner, Taxi, Hotel Stay"
+              value={formData.title}
+              onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+              required
+            />
+          </div>
+
+          {/* Category */}
           <div>
             <Label htmlFor="category">Category</Label>
             <Select
@@ -116,6 +133,7 @@ export function AddExpenseForm({ itineraryId }: AddExpenseFormProps) {
             </Select>
           </div>
 
+          {/* Amount */}
           <div>
             <Label htmlFor="amount">Amount ($)</Label>
             <Input
@@ -129,6 +147,7 @@ export function AddExpenseForm({ itineraryId }: AddExpenseFormProps) {
             />
           </div>
 
+          {/* Description */}
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -136,11 +155,12 @@ export function AddExpenseForm({ itineraryId }: AddExpenseFormProps) {
               placeholder="What did you spend money on?"
               value={formData.description}
               onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-              required
               rows={3}
+              required
             />
           </div>
 
+          {/* Date */}
           <div>
             <Label htmlFor="expenseDate">Date</Label>
             <Input
@@ -152,15 +172,16 @@ export function AddExpenseForm({ itineraryId }: AddExpenseFormProps) {
             />
           </div>
 
+          {/* Buttons */}
           <div className="flex gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
               Cancel
             </Button>
+
             <Button type="submit" disabled={isSubmitting} className="flex-1 bg-cyan-600 hover:bg-cyan-700">
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding...
                 </>
               ) : (
                 "Add Expense"

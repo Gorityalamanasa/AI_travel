@@ -3,12 +3,13 @@ import { cookies } from "next/headers"
 
 export async function POST(request: Request) {
   try {
-    const { itineraryId, category, amount, description, expenseDate } = await request.json()
+    const { itineraryId, category, amount, description, expenseDate } =
+      await request.json()
 
     const cookieStore = cookies()
     const supabase = createServerClient(cookieStore)
 
-    // Get user from Supabase
+    // Get authenticated user
     const {
       data: { user },
       error: authError,
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Verify user owns the itinerary
+    // Check itinerary ownership
     const { data: itinerary, error: itineraryError } = await supabase
       .from("itineraries")
       .select("id")
@@ -30,12 +31,16 @@ export async function POST(request: Request) {
       return Response.json({ error: "Itinerary not found" }, { status: 404 })
     }
 
-    // Add expense
+    // Insert expense
     const { data: expense, error: expenseError } = await supabase
       .from("expenses")
       .insert({
         itinerary_id: itineraryId,
         user_id: user.id,
+
+        // ✔️ REQUIRED — title column cannot be null
+        title: description, 
+
         category,
         amount,
         description,

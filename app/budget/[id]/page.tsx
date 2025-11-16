@@ -50,7 +50,7 @@ export default async function BudgetPage({ params }: BudgetPageProps) {
     .from("expenses")
     .select("*")
     .eq("itinerary_id", params.id)
-    .order("expense_date", { ascending: false })
+    .order("date", { ascending: false })
 
   // Calculate totals
   const totalBudget = itinerary.budget || 0
