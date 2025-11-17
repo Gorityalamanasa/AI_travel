@@ -6,6 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Plane, MapPin, Calendar, DollarSign, Settings, Plus, Eye, Users } from "lucide-react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
+
+const CurrencySelector = dynamic(() => import("@/components/currency-selector").then((mod) => mod.CurrencySelector), {
+  ssr: false,
+})
+const DeleteItineraryButton = dynamic(
+  () => import("@/components/delete-itinerary-button").then((mod) => mod.DeleteItineraryButton),
+  { ssr: false },
+)
 
 export default async function DashboardPage() {
   const cookieStore = cookies()
@@ -52,6 +61,7 @@ export default async function DashboardPage() {
             <h1 className="text-3xl font-bold text-gray-900">TravelAI Dashboard</h1>
           </div>
           <div className="flex items-center gap-4">
+            <CurrencySelector showLabel={false} />
             <Link href="/preferences">
               <Button variant="outline" className="flex items-center gap-2 bg-transparent">
                 <Settings className="h-4 w-4" />
@@ -183,15 +193,18 @@ export default async function DashboardPage() {
                         <h4 className="font-semibold text-gray-900">{itinerary.destination}</h4>
                         <Badge variant="secondary">${itinerary.budget}</Badge>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(itinerary.start_date)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          {itinerary.group_size} people
-                        </span>
+                      <div className="flex items-center justify-between gap-4 text-sm text-gray-600 mb-3">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {formatDate(itinerary.start_date)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            {itinerary.group_size} people
+                          </span>
+                        </div>
+                        <DeleteItineraryButton itineraryId={itinerary.id} />
                       </div>
                       <Link href={`/itinerary/${itinerary.id}`}>
                         <Button variant="outline" size="sm" className="w-full bg-transparent">

@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,23 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Calendar, MapPin, Users, DollarSign, Sparkles, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useCurrency } from "@/contexts/currency-context"
+import { CurrencySelector } from "@/components/currency-selector"
 
 const popularActivities = [
-  "Sightseeing",
-  "Museums",
-  "Food Tours",
-  "Adventure Sports",
-  "Beach Activities",
-  "Nightlife",
-  "Shopping",
-  "Cultural Experiences",
-  "Nature & Hiking",
-  "Photography",
-  "Art Galleries",
-  "Local Markets",
-  "Historical Sites",
-  "Music & Concerts",
-  "Wellness & Spa",
+  "Sightseeing", "Museums", "Food Tours", "Adventure Sports", "Beach Activities",
+  "Nightlife", "Shopping", "Cultural Experiences", "Nature & Hiking", "Photography",
+  "Art Galleries", "Local Markets", "Historical Sites", "Music & Concerts", "Wellness & Spa",
 ]
 
 const travelStyles = [
@@ -42,6 +31,8 @@ const travelStyles = [
 export default function CreateItinerary() {
   const router = useRouter()
   const [isGenerating, setIsGenerating] = useState(false)
+  const { currency, formatCurrency } = useCurrency()
+
   const [formData, setFormData] = useState({
     destination: "",
     startDate: "",
@@ -70,15 +61,14 @@ export default function CreateItinerary() {
     try {
       const response = await fetch("/api/generate-itinerary", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           destination: formData.destination,
           startDate: formData.startDate,
           endDate: formData.endDate,
           budget: Number.parseInt(formData.budget),
           groupSize: Number.parseInt(formData.groupSize),
+          currency,
           preferences: {
             activities: formData.activities,
             travelStyle: formData.travelStyle,
@@ -89,12 +79,8 @@ export default function CreateItinerary() {
       })
 
       const data = await response.json()
-
-      if (data.success) {
-        router.push(`/itinerary/${data.id}`)
-      } else {
-        alert("Failed to generate itinerary. Please try again.")
-      }
+      if (data.success) router.push(`/itinerary/${data.id}`)
+      else alert("Failed to generate itinerary. Please try again.")
     } catch (error) {
       console.error("Error:", error)
       alert("An error occurred. Please try again.")
@@ -114,6 +100,7 @@ export default function CreateItinerary() {
   }
 
   const duration = calculateDuration()
+
   const dailyBudget =
     formData.budget && duration > 0
       ? Math.round(Number.parseInt(formData.budget) / Number.parseInt(formData.groupSize) / duration)
@@ -122,18 +109,22 @@ export default function CreateItinerary() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50 py-8">
       <div className="container mx-auto px-4 max-w-4xl">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Create Your Perfect Itinerary</h1>
-          <p className="text-xl text-gray-600">Let AI craft a personalized travel experience just for you</p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="text-center flex-1">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Create Your Perfect Itinerary</h1>
+            <p className="text-xl text-gray-600">Let AI craft a personalized travel experience just for you</p>
+          </div>
+          <div className="ml-4">
+            <CurrencySelector showLabel={false} />
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Basic Trip Details */}
+          {/* Trip Details */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-cyan-600" />
-                Trip Details
+                <MapPin className="h-5 w-5 text-cyan-600" /> Trip Details
               </CardTitle>
               <CardDescription>Tell us about your dream destination and travel dates</CardDescription>
             </CardHeader>
@@ -142,7 +133,7 @@ export default function CreateItinerary() {
                 <Label htmlFor="destination">Destination</Label>
                 <Input
                   id="destination"
-                  placeholder="e.g., Paris, France or Tokyo, Japan"
+                  placeholder="e.g., Paris, France"
                   value={formData.destination}
                   onChange={(e) => setFormData((prev) => ({ ...prev, destination: e.target.value }))}
                   required
@@ -187,15 +178,14 @@ export default function CreateItinerary() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-green-600" />
-                Budget & Group
+                <DollarSign className="h-5 w-5 text-green-600" /> Budget & Group
               </CardTitle>
               <CardDescription>Set your budget and group size for personalized recommendations</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="budget">Total Budget (USD)</Label>
+                  <Label htmlFor="budget">Total Budget ({currency === "USD" ? "$" : "₹"})</Label>
                   <Input
                     id="budget"
                     type="number"
@@ -229,7 +219,7 @@ export default function CreateItinerary() {
                 <div className="bg-green-50 p-4 rounded-lg">
                   <p className="text-sm text-green-800">
                     <Users className="inline h-4 w-4 mr-1" />
-                    Daily Budget: <strong>${dailyBudget} per person</strong>
+                    Daily Budget: <strong>{formatCurrency(dailyBudget)} per person</strong>
                   </p>
                 </div>
               )}
@@ -240,12 +230,12 @@ export default function CreateItinerary() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-600" />
-                Travel Preferences
+                <Sparkles className="h-5 w-5 text-purple-600" /> Travel Preferences
               </CardTitle>
               <CardDescription>Customize your experience based on your interests and style</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Travel Style */}
               <div>
                 <Label>Travel Style</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
@@ -266,6 +256,7 @@ export default function CreateItinerary() {
                 </div>
               </div>
 
+              {/* Activities */}
               <div>
                 <Label>Favorite Activities</Label>
                 <p className="text-sm text-gray-600 mb-3">Select activities you enjoy (choose multiple)</p>
@@ -283,6 +274,7 @@ export default function CreateItinerary() {
                 </div>
               </div>
 
+              {/* Accommodation */}
               <div>
                 <Label htmlFor="accommodation">Accommodation Preference</Label>
                 <Select
@@ -302,6 +294,7 @@ export default function CreateItinerary() {
                 </Select>
               </div>
 
+              {/* Special Requirements */}
               <div>
                 <Label htmlFor="specialRequirements">Special Requirements</Label>
                 <Textarea

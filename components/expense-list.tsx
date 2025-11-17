@@ -1,5 +1,8 @@
+"use client"
+
 import { Badge } from "@/components/ui/badge"
 import { Receipt, Calendar } from "lucide-react"
+import { useCurrency } from "@/contexts/currency-context"
 
 interface Expense {
   id: string
@@ -33,6 +36,8 @@ const categoryLabels = {
 }
 
 export function ExpenseList({ expenses }: ExpenseListProps) {
+  const { formatCurrency } = useCurrency()
+
   if (!expenses || expenses.length === 0) {
     return (
       <div className="text-center py-8">
@@ -70,7 +75,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
             <p className="font-medium text-gray-900">{expense.description}</p>
           </div>
           <div className="text-right">
-            <p className="font-bold text-gray-900">${Number.parseFloat(expense.amount).toLocaleString()}</p>
+            <p className="font-bold text-gray-900">{formatCurrency(Number.parseFloat(expense.amount))}</p>
           </div>
         </div>
       ))}

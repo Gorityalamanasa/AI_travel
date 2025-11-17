@@ -4,27 +4,37 @@ import { notFound, redirect } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MapPin, Calendar, Users, DollarSign } from "lucide-react"
+import { MapPin, Calendar, Users, DollarSign, Sun } from "lucide-react"
 import Link from "next/link"
 import { ItineraryContent } from "@/components/itinerary-content"
-import { ItineraryActions } from "@/components/ui/ItineraryActions"
+import dynamic from "next/dynamic"
+import { DownloadItineraryButton } from "@/components/download-itinerary-button"
 
-interface PageProps {
-  params: { id: string }
+const CurrencySelector = dynamic(() => import("@/components/currency-selector").then((mod) => mod.CurrencySelector), {
+  ssr: false,
+})
+
+interface ItineraryPageProps {
+  params: {
+    id: string
+  }
 }
 
-export default async function ItineraryPage({ params }: PageProps) {
-  // -------------------- SERVER LOGIC --------------------
+export default async function ItineraryPage({ params }: ItineraryPageProps) {
   const cookieStore = cookies()
   const supabase = createServerClient(cookieStore)
 
+  // Check authentication
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser()
 
-  if (authError || !user) redirect("/auth/login")
+  if (authError || !user) {
+    redirect("/auth/login")
+  }
 
+  // Fetch itinerary
   const { data: itinerary, error } = await supabase
     .from("itineraries")
     .select("*")
@@ -32,101 +42,121 @@ export default async function ItineraryPage({ params }: PageProps) {
     .eq("user_id", user.id)
     .single()
 
-  if (!itinerary) notFound()
+  if (error || !itinerary) {
+    notFound()
+  }
 
-  const duration = Math.ceil(
-    (new Date(itinerary.end_date).getTime() - new Date(itinerary.start_date).getTime()) /
-      (1000 * 60 * 60 * 24)
-  )
-
-  const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString("en-US", {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
     })
+  }
 
-  // -------------------- JSX (Server Component) --------------------
+  const calculateDuration = () => {
+    const start = new Date(itinerary.start_date)
+    const end = new Date(itinerary.end_date)
+    return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  const duration = calculateDuration()
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <Link href="/dashboard">
+              <Button variant="outline">← Back to Dashboard</Button>
+            </Link>
+            <div className="flex items-center gap-2">
+              <CurrencySelector showLabel={false} />
+              <Link href={`/seasonal/${itinerary.id}`}>
+                <Button variant="outline" size="sm">
+                  <Sun className="h-4 w-4 mr-2" />
+                  Seasonal Guide
+                </Button>
+              </Link>
+              <Link href={`/budget/${itinerary.id}`}>
+                <Button variant="outline" size="sm">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Budget Manager
+                </Button>
+              </Link>
+              <DownloadItineraryButton
+                destination={itinerary.destination}
+                startDate={itinerary.start_date}
+                endDate={itinerary.end_date}
+                groupSize={itinerary.group_size}
+                budget={itinerary.budget}
+                activities={itinerary.preferences?.activities}
+                content={itinerary.content}
+              />
+            </div>
+          </div>
 
-        {/* HEADER */}
-        <div className="flex items-center justify-between mb-6">
-          <Link href="/dashboard">
-            <Button variant="outline">← Back</Button>
-          </Link>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Your {itinerary.destination} Adventure</h1>
 
-          {/* CLIENT ACTIONS */}
-          <ItineraryActions itineraryId={itinerary.id} />
+          {/* Trip Summary */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-cyan-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Destination</p>
+                    <p className="font-medium">{itinerary.destination}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Duration</p>
+                    <p className="font-medium">{duration} days</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Group Size</p>
+                    <p className="font-medium">{itinerary.group_size} people</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Total Budget</p>
+                    <p className="font-medium">${itinerary.budget}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-sm text-gray-600 mb-2">Travel Dates</p>
+                <p className="font-medium">
+                  {formatDate(itinerary.start_date)} - {formatDate(itinerary.end_date)}
+                </p>
+              </div>
+
+              {Array.isArray(itinerary.preferences?.activities) && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-sm text-gray-600 mb-2">Selected Activities</p>
+                  <div className="flex flex-wrap gap-2">
+                    {itinerary.preferences?.activities?.map((activity: string) => (
+                      <Badge key={activity} variant="secondary">
+                        {activity}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        {/* TITLE */}
-        <h1 className="text-4xl font-bold text-gray-900 mb-6">
-          Your {itinerary.destination} Adventure
-        </h1>
-
-        {/* TRIP SUMMARY */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-cyan-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Destination</p>
-                  <p className="font-medium">{itinerary.destination}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Duration</p>
-                  <p className="font-medium">{duration} days</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-purple-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Group Size</p>
-                  <p className="font-medium">{itinerary.group_size}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Budget</p>
-                  <p className="font-medium">${itinerary.budget}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-600 mb-2">Travel Dates</p>
-              <p className="font-medium">
-                {formatDate(itinerary.start_date)} - {formatDate(itinerary.end_date)}
-              </p>
-            </div>
-
-            {itinerary.preferences?.activities && (
-              <div className="mt-4 pt-4 border-t">
-                <p className="text-sm text-gray-600 mb-2">Activities</p>
-                <div className="flex flex-wrap gap-2">
-                  {itinerary.preferences.activities.map((activity: string) => (
-                    <Badge key={activity} variant="secondary">
-                      {activity}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* CONTENT */}
         <ItineraryContent
           content={itinerary.content}
           destination={itinerary.destination}
@@ -136,6 +166,15 @@ export default async function ItineraryPage({ params }: PageProps) {
           groupSize={itinerary.group_size}
         />
 
+        {/* Action Buttons */}
+        <div className="mt-8 text-center space-x-4">
+          <Link href="/create-itinerary">
+            <Button variant="outline">Create Another Itinerary</Button>
+          </Link>
+          <Link href="/dashboard">
+            <Button>View All Itineraries</Button>
+          </Link>
+        </div>
       </div>
     </div>
   )

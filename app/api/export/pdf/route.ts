@@ -1,4 +1,4 @@
-export const runtime = "nodejs"; // important
+export const runtime = "nodejs"; // ensure Node runtime
 
 import { NextResponse } from "next/server";
 import PDFDocument from "pdfkit";
@@ -25,6 +25,7 @@ export async function GET(req: Request) {
     const chunks: Uint8Array[] = [];
     doc.on("data", (chunk) => chunks.push(chunk));
 
+    // Use your TTF font explicitly
     const fontPath = path.join(process.cwd(), "fonts", "LiberationSerif-Regular.ttf");
     if (!fs.existsSync(fontPath)) throw new Error("Font not found: " + fontPath);
     doc.font(fontPath);

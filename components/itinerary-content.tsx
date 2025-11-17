@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, MapPin, DollarSign, Utensils, Car, Bed, Camera, CheckCircle, Circle, Star } from "lucide-react"
+import { useCurrency } from "@/contexts/currency-context"
 
 interface ItineraryContentProps {
   content: string
@@ -41,6 +42,7 @@ export function ItineraryContent({
 }: ItineraryContentProps) {
   const [checkedActivities, setCheckedActivities] = useState<Set<string>>(new Set())
   const [activeView, setActiveView] = useState<"timeline" | "overview" | "budget">("timeline")
+  const { formatCurrency, currency } = useCurrency()
 
   // Parse the AI-generated content into structured data
   const parseItinerary = (content: string): DayPlan[] => {
@@ -83,13 +85,13 @@ export function ItineraryContent({
           type = "evening"
         }
 
-        // Extract cost if present
-        const costMatch = activity.match(/\$(\d+(?:\.\d{2})?)/)
-        const cost = costMatch ? `$${costMatch[1]}` : undefined
+        // Extract cost if present (supports both $ and ₹)
+        const costMatch = activity.match(/[\$₹](\d+(?:\.\d{2})?)/)
+        const cost = costMatch ? formatCurrency(Number.parseFloat(costMatch[1])) : undefined
 
         currentDay.activities.push({
           time,
-          activity: activity.replace(/\$\d+(?:\.\d{2})?/g, "").trim(),
+          activity: activity.replace(/[\$₹]\d+(?:\.\d{2})?/g, "").trim(),
           cost,
           type,
         })
@@ -109,11 +111,11 @@ export function ItineraryContent({
     if (!budgetSection) return null
 
     const categories = [
-      { name: "Accommodation", pattern: /Accommodation:\s*\$(\d+(?:,\d{3})*(?:\.\d{2})?)/i, icon: Bed },
-      { name: "Activities", pattern: /Activities:\s*\$(\d+(?:,\d{3})*(?:\.\d{2})?)/i, icon: Camera },
-      { name: "Food", pattern: /Food:\s*\$(\d+(?:,\d{3})*(?:\.\d{2})?)/i, icon: Utensils },
-      { name: "Transportation", pattern: /Transportation:\s*\$(\d+(?:,\d{3})*(?:\.\d{2})?)/i, icon: Car },
-      { name: "Miscellaneous", pattern: /Miscellaneous:\s*\$(\d+(?:,\d{3})*(?:\.\d{2})?)/i, icon: DollarSign },
+      { name: "Accommodation", pattern: /Accommodation:\s*[\$₹](\d+(?:,\d{3})*(?:\.\d{2})?)/i, icon: Bed },
+      { name: "Activities", pattern: /Activities:\s*[\$₹](\d+(?:,\d{3})*(?:\.\d{2})?)/i, icon: Camera },
+      { name: "Food", pattern: /Food:\s*[\$₹](\d+(?:,\d{3})*(?:\.\d{2})?)/i, icon: Utensils },
+      { name: "Transportation", pattern: /Transportation:\s*[\$₹](\d+(?:,\d{3})*(?:\.\d{2})?)/i, icon: Car },
+      { name: "Miscellaneous", pattern: /Miscellaneous:\s*[\$₹](\d+(?:,\d{3})*(?:\.\d{2})?)/i, icon: DollarSign },
     ]
 
     return categories
@@ -278,7 +280,7 @@ export function ItineraryContent({
                   </div>
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">${Math.round(budget / groupSize)} per person</span>
+                    <span className="text-sm">{formatCurrency(Math.round(budget / groupSize))} per person</span>
                   </div>
                 </div>
               </CardContent>
@@ -350,7 +352,7 @@ export function ItineraryContent({
                           <Icon className="h-5 w-5 text-gray-600" />
                           <span className="font-medium">{category.name}</span>
                         </div>
-                        <span className="text-lg font-bold">${category.amount.toLocaleString()}</span>
+                        <span className="text-lg font-bold">{formatCurrency(category.amount)}</span>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm text-gray-600">

@@ -8,6 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MapPin, Calendar, Users, DollarSign, Plus, Search, Eye } from "lucide-react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
+
+const CurrencySelector = dynamic(() => import("@/components/currency-selector").then((mod) => mod.CurrencySelector), {
+  ssr: false,
+})
 
 export default async function ItinerariesPage() {
   const cookieStore = cookies()
@@ -22,6 +27,15 @@ export default async function ItinerariesPage() {
   if (authError || !user) {
     redirect("/auth/login")
   }
+
+  // ✅ Fetch user's currency preference
+  const { data: userSettings } = await supabase
+    .from("users")
+    .select("currency")
+    .eq("id", user.id)
+    .single()
+
+  const currency = userSettings?.currency || "USD"
 
   // Fetch all itineraries
   const { data: itineraries } = await supabase
@@ -73,12 +87,15 @@ export default async function ItinerariesPage() {
             <Link href="/dashboard">
               <Button variant="outline">← Back to Dashboard</Button>
             </Link>
-            <Link href="/create-itinerary">
-              <Button className="bg-cyan-600 hover:bg-cyan-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Itinerary
-              </Button>
-            </Link>
+            <div className="flex items-center gap-4">
+              <CurrencySelector showLabel={false} />
+              <Link href="/create-itinerary">
+                <Button className="bg-cyan-600 hover:bg-cyan-700">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Itinerary
+                </Button>
+              </Link>
+            </div>
           </div>
 
           <h1 className="text-4xl font-bold text-gray-900 mb-2">My Travel Itineraries</h1>
@@ -152,7 +169,9 @@ export default async function ItinerariesPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-green-600" />
-                        <span className="text-sm">${itinerary.budget?.toLocaleString()}</span>
+                        <span className="text-sm">
+                          {currency} {itinerary.budget?.toLocaleString()}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-cyan-600" />
@@ -160,17 +179,17 @@ export default async function ItinerariesPage() {
                       </div>
                     </div>
 
-                    {itinerary.preferences?.activities && (
+                    {Array.isArray(itinerary.preferences?.activities) && (
                       <div className="mb-4">
                         <div className="flex flex-wrap gap-1">
-                          {itinerary.preferences.activities.slice(0, 3).map((activity: string) => (
+                          {itinerary.preferences?.activities?.slice(0, 3).map((activity: string) => (
                             <Badge key={activity} variant="outline" className="text-xs">
                               {activity}
                             </Badge>
                           ))}
-                          {itinerary.preferences.activities.length > 3 && (
+                          {itinerary.preferences?.activities?.length > 3 && (
                             <Badge variant="outline" className="text-xs">
-                              +{itinerary.preferences.activities.length - 3} more
+                              +{(itinerary.preferences?.activities?.length || 0) - 3} more
                             </Badge>
                           )}
                         </div>
